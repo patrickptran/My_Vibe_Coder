@@ -1,7 +1,12 @@
-import { createAgent, createTool, openai } from "@inngest/agent-kit";
+import {
+  createAgent,
+  createNetwork,
+  createTool,
+  openai,
+} from "@inngest/agent-kit";
 import { inngest } from "./client";
 import { Sandbox } from "@e2b/code-interpreter";
-import { getSandbox } from "./utils";
+import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 import { z } from "zod";
 import { PROMPT } from "../prompt";
 
@@ -16,17 +21,17 @@ export const helloWorld = inngest.createFunction(
 
     const codeAgent = createAgent({
       name: "code Agent",
+      description:
+        "An agent that can write code in a sandboxed Next.js environment",
       system: PROMPT,
       model: openai({ model: "gpt-4o" }),
       tools: [
         createTool({
           name: "terminal",
-          description: "A sandbox environment for running code snippets",
-          // @ts-expect-error the conflict between zod and inngest types
+          description: "Use the terminal to run commands in the sandbox",
           parameters: z.object({
             command: z.string(),
           }),
-
           handler: async ({ command }, { step }) => {
             return await step?.run("terminal", async () => {
               const buffers = { stdout: "", stderr: "" };
@@ -42,12 +47,12 @@ export const helloWorld = inngest.createFunction(
                     buffers.stderr += data;
                   },
                 });
-                return result?.stdout || "";
+                return result?.stdout;
               } catch (error) {
-                console.log(
-                  `Error running command: ${error} \n stdout: ${buffers.stdout} \n stderr: ${buffers.stderr}`
+                console.error(
+                  `Command fail: ${error} \n stdout: ${buffers.stdout} \n stderr: ${buffers.stderr}`
                 );
-                return `Error running command: ${error} \n stdout: ${buffers.stdout} \n stderr: ${buffers.stderr}`;
+                return `Command fail: ${error} \n stdout: ${buffers.stdout} \n stderr: ${buffers.stderr}`;
               }
             });
           },
@@ -55,7 +60,6 @@ export const helloWorld = inngest.createFunction(
         createTool({
           name: "createOrUpdateFiles",
           description: " Create or update files in the sandbox",
-          // @ts-expect-error the conflict between zod and inngest types
           parameters: z.object({
             files: z.array(z.object({ path: z.string(), content: z.string() })),
           }),
@@ -88,7 +92,6 @@ export const helloWorld = inngest.createFunction(
         createTool({
           name: "readFiles",
           description: "Read files from the sandbox",
-          // @ts-expect-error the conflict between zod and inngest types
           parameters: z.object({
             paths: z.array(z.string()),
           }),
@@ -110,16 +113,43 @@ export const helloWorld = inngest.createFunction(
           },
         }),
       ],
+      lifecycle: {
+        onResponse: async ({ result, network }) => {
+          const lastAssistantMessageText =
+            lastAssistantTextMessageContent(result);
+          if (lastAssistantMessageText && network) {
+            if (lastAssistantMessageText.includes("<task_summary>")) {
+              network.state.data.summary = lastAssistantMessageText;
+            }
+          }
+          return result;
+        },
+      },
     });
 
-    const { output } = await codeAgent.run(
-      `Write the following snippets: ${event.data.value}`
-    );
+    const network = createNetwork({
+      name: "coding-agent-network",
+      agents: [codeAgent],
+      maxIter: 15,
+      router: async ({ network }) => {
+        const summary = network.state.data.summary;
+        if (summary) return;
+        return codeAgent;
+      },
+    });
+
+    const result = await network.run(event.data.value);
+
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);
       const host = sandbox?.getHost(3000);
       return `https://${host}`;
     });
-    return { output, sandboxUrl };
+    return {
+      url: sandboxUrl,
+      title: "Fragment",
+      files: network.state.data.files,
+      summary: result.state.data.summary,
+    };
   }
 );
