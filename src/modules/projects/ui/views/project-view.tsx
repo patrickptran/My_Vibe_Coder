@@ -6,8 +6,10 @@ import {
 } from "@/components/ui/resizable";
 import { Fragment } from "@/generated/prisma";
 import { Suspense, useState } from "react";
+
 import { MessagesContainer } from "../components/messages-container";
 import { ProjectHeader } from "../components/project-header";
+import { FragmentWeb } from "../components/fragment-web";
 
 interface Props {
   projectId: string;
@@ -44,7 +46,7 @@ export const ProjectView = ({ projectId }: Props) => {
           minSize={50}
           className="p-4 overflow-auto"
         >
-          TODO: render messages properly
+          {!!activeFragment && <FragmentWeb data={activeFragment} />}
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

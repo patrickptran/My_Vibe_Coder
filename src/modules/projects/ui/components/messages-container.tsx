@@ -34,6 +34,7 @@ export const MessagesContainer = ({
     )
   );
 
+  // TODO: Uncomment this to auto select fragment from last assistant message
   // useEffect(() => {
   //   const lastAssistantMessageWithFragment = messages.findLast(
   //     (message) => message.role === "ASSISTANT" && !!message.fragment
