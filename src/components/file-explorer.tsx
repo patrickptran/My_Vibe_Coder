@@ -1,8 +1,10 @@
 import { CopyCheckIcon, CopyIcon } from "lucide-react";
 import { useState, useMemo, useCallback, Fragment } from "react";
+import { convertFilesToTreeItems } from "@/lib/utils";
 import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { CodeView } from "@/components/code-view";
+import { TreeView } from "@/components/tree-view";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -35,10 +37,27 @@ export const FileExplorer = ({ files }: FileExplorerProps) => {
     return fileKeys.length > 0 ? fileKeys[0] : null;
   });
 
+  const treeData = useMemo(() => {
+    return convertFilesToTreeItems(files);
+  }, [files]);
+
+  const handleFileSelect = useCallback(
+    (filePath: string) => {
+      if (files[filePath]) {
+        setSelectedFile(filePath);
+      }
+    },
+    [files]
+  );
+
   return (
     <ResizablePanelGroup direction="horizontal">
       <ResizablePanel defaultSize={30} minSize={30} className="bg-sidebar">
-        <p>TODO: Tree View</p>
+        <TreeView
+          data={treeData}
+          value={selectedFile}
+          onSelect={handleFileSelect}
+        />
       </ResizablePanel>
 
       <ResizableHandle className="hover:bg-primary transition-colors" />
@@ -60,7 +79,12 @@ export const FileExplorer = ({ files }: FileExplorerProps) => {
                 </Button>
               </Hint>
             </div>
-            <p>TODO Code view</p>
+            <div className="flex-1 overflow-auto">
+              <CodeView
+                code={files[selectedFile]}
+                lang={getLanguageFromExtension(selectedFile)}
+              />
+            </div>
           </div>
         ) : (
           <div className="flex h-full items-center justify-center text-muted-foreground">
