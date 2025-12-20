@@ -13,7 +13,7 @@ import { PROMPT } from "../prompt";
 
 interface AgentState {
   summary: string;
-  file: { [path: string]: string };
+  files: { [path: string]: string };
 }
 
 export const codeAgentFunction = inngest.createFunction(
@@ -30,7 +30,10 @@ export const codeAgentFunction = inngest.createFunction(
       description:
         "An agent that can write code in a sandboxed Next.js environment",
       system: PROMPT,
-      model: openai({ model: "gpt-4o" }),
+      model: openai({
+        model: "gpt-4.1",
+        defaultParameters: { temperature: 0.1 },
+      }),
       tools: [
         createTool({
           name: "terminal",
@@ -41,11 +44,10 @@ export const codeAgentFunction = inngest.createFunction(
           handler: async ({ command }, { step }) => {
             return await step?.run("terminal", async () => {
               const buffers = { stdout: "", stderr: "" };
+
               try {
                 const sandbox = await getSandbox(sandboxId);
                 const result = await sandbox?.commands.run(command, {
-                  // maybe we want to capture stdin in the future?
-                  stdin: true,
                   onStdout: (data: string) => {
                     buffers.stdout += data;
                   },
@@ -53,7 +55,7 @@ export const codeAgentFunction = inngest.createFunction(
                     buffers.stderr += data;
                   },
                 });
-                return result?.stdout;
+                return result.stdout;
               } catch (error) {
                 console.error(
                   `Command fail: ${error} \n stdout: ${buffers.stdout} \n stderr: ${buffers.stderr}`
@@ -73,16 +75,12 @@ export const codeAgentFunction = inngest.createFunction(
             { files },
             { step, network }: Tool.Options<AgentState>
           ) => {
-            /*
-            / app/page.tsx --> "<div>Hello World</div>"
-            / app/about/page.tsx --> "<div>About Us</div>"
-            */
             const newFiles = await step?.run(
-              "create-or-update-files",
+              "createOrUpdateFiles",
               async () => {
                 try {
+                  const updatedFiles = network.state.data.files || {};
                   const sandbox = await getSandbox(sandboxId);
-                  const updatedFiles: string[] = network.state.data.files || [];
                   for (const file of files) {
                     await sandbox?.files.write(file.path, file.content);
                     updatedFiles[file.path] = file.content;
@@ -102,7 +100,7 @@ export const codeAgentFunction = inngest.createFunction(
           name: "readFiles",
           description: "Read files from the sandbox",
           parameters: z.object({
-            paths: z.array(z.string()),
+            files: z.array(z.string()),
           }),
           handler: async ({ files }, { step }) => {
             return await step?.run("readFiles", async () => {
@@ -115,8 +113,7 @@ export const codeAgentFunction = inngest.createFunction(
                 }
                 return JSON.stringify(contents);
               } catch (e) {
-                console.log("Error reading files", e);
-                return "Error reading files";
+                return "Error reading files " + e;
               }
             });
           },
