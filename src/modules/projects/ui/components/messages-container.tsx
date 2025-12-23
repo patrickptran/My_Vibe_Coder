@@ -18,8 +18,9 @@ export const MessagesContainer = ({
   activeFragment,
   setActiveFragment,
 }: Props) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
   const trpc = useTRPC();
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const lastAssistentMessageIdRef = useRef<string | null>(null);
 
   const { data: messages } = useSuspenseQuery(
     trpc.messages.getMany.queryOptions(
@@ -34,18 +35,19 @@ export const MessagesContainer = ({
     )
   );
 
-  // TODO: Uncomment this to auto select fragment from last assistant message
-  // useEffect(() => {
-  //   const lastAssistantMessageWithFragment = messages.findLast(
-  //     (message) => message.role === "ASSISTANT" && !!message.fragment
-  //   );
-  //   if (
-  //     lastAssistantMessageWithFragment &&
-  //     lastAssistantMessageWithFragment.fragment
-  //   ) {
-  //     setActiveFragment(lastAssistantMessageWithFragment.fragment);
-  //   }
-  // }, [messages, setActiveFragment]);
+  useEffect(() => {
+    const lastAssistantMessage = messages.findLast(
+      (message) => message.role === "ASSISTANT"
+    );
+
+    if (
+      lastAssistantMessage?.fragment &&
+      lastAssistantMessage.id !== lastAssistentMessageIdRef.current
+    ) {
+      setActiveFragment(lastAssistantMessage.fragment);
+      lastAssistentMessageIdRef.current = lastAssistantMessage.id;
+    }
+  }, [messages, setActiveFragment]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
