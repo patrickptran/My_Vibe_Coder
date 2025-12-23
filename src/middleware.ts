@@ -1,5 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+// never relied on middleware for authentication, it's just a nice user experience
+// it's esay to re-direct the user by using middleware ==> it's not the line of defense
+
+// what if the middleware break, what could happen ? NextJS have the middleware security issues just a few versions ago
+
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
