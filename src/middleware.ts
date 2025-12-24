@@ -12,6 +12,7 @@ const isPublicRoute = createRouteMatcher([
   "/api(.*)",
   // "/api/inngest(.*)", // block un-authentication background job for working
   // "/api/trpc(.*)",
+  "/pricing(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

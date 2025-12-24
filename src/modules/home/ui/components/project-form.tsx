@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { PROJECT_TEMPLATES } from "../../constants";
-import { useClerk } from "@clerk/nextjs";
+// import { useClerk } from "@clerk/nextjs";
 
 const formSchema = z.object({
   value: z.string().min(1, { message: "Value is required" }).max(10000, {
@@ -25,7 +25,7 @@ export const ProjectForm = () => {
   const router = useRouter();
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const clerk = useClerk();
+  // const clerk = useClerk();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -39,13 +39,17 @@ export const ProjectForm = () => {
       onSuccess: (data) => {
         queryClient.invalidateQueries(trpc.projects.getMany.queryOptions());
         router.push(`/projects/${data.id}`);
-        // TODO: invalidate usage status
+
+        queryClient.invalidateQueries(trpc.usage.status.queryOptions());
       },
       onError: (error) => {
         toast.error(error.message || "There was an error creating the project");
         if (error.data?.code === "UNAUTHORIZED") {
-          clerk.openSignIn();
-          // router.push("/sign-in");
+          // clerk.openSignIn();
+          router.push("/sign-in");
+        }
+        if (error.data?.code === "TOO_MANY_REQUESTS") {
+          router.push("/pricing");
         }
       },
     })

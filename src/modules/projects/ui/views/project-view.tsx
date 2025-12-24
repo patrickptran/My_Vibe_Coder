@@ -17,6 +17,7 @@ import { EyeIcon, CrownIcon, CodeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileExplorer } from "@/components/file-explorer";
 import { UserControl } from "@/components/user-control";
+import { useAuth } from "@clerk/nextjs";
 
 interface Props {
   projectId: string;
@@ -26,6 +27,8 @@ export const ProjectView = ({ projectId }: Props) => {
   const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
   const [tabState, setTabState] = useState<"preview" | "code">("preview");
   console.log("Active Fragment:", activeFragment);
+  const { has } = useAuth();
+  const hasPremiumAccess = has?.({ plan: "pro" });
 
   return (
     <div className="h-screen">
@@ -71,11 +74,13 @@ export const ProjectView = ({ projectId }: Props) => {
                 </TabsTrigger>
               </TabsList>
               <div className="ml-auto flex items-center gap-x-2">
-                <Button asChild size="sm" variant="tertiary">
-                  <Link href="/pricing">
-                    <CrownIcon /> Upgrade
-                  </Link>
-                </Button>
+                {!hasPremiumAccess && (
+                  <Button asChild size="sm" variant="tertiary">
+                    <Link href="/pricing">
+                      <CrownIcon /> Upgrade
+                    </Link>
+                  </Button>
+                )}
                 <UserControl />
               </div>
             </div>
