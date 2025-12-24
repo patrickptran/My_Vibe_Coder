@@ -9,9 +9,13 @@ import {
 } from "@inngest/agent-kit";
 import { inngest } from "./client";
 import { Sandbox } from "@e2b/code-interpreter";
-import { getSandbox, lastAssistantTextMessageContent } from "./utils";
+import {
+  getSandbox,
+  lastAssistantTextMessageContent,
+  parseAgentOutput,
+} from "./utils";
 import { z } from "zod";
-import { PROMPT } from "../prompt";
+import { PROMPT, RESPONSE_PROMPT, FRAGMENT_TITLE_PROMPT } from "../prompt";
 
 interface AgentState {
   summary: string;
@@ -183,6 +187,31 @@ export const codeAgentFunction = inngest.createFunction(
 
     const result = await network.run(event.data.value, { state });
 
+    const fragmentTitleGenerator = createAgent({
+      name: "fragment-title-generator",
+      description: "A fragment title generator",
+      system: FRAGMENT_TITLE_PROMPT,
+      model: openai({
+        model: "gpt-4o",
+      }),
+    });
+    const responseGenerator = createAgent({
+      name: "response-generator",
+      description: "A response generator",
+      system: RESPONSE_PROMPT,
+      model: openai({
+        model: "gpt-4o",
+      }),
+    });
+
+    const { output: fragmentTitleOutput } = await fragmentTitleGenerator.run(
+      result.state.data.summary
+    );
+
+    const { output: responseOutput } = await responseGenerator.run(
+      result.state.data.summary
+    );
+
     const isError =
       !result.state.data.summary ||
       !Object.keys(result.state.data.files || {}).length === 0;
@@ -208,13 +237,13 @@ export const codeAgentFunction = inngest.createFunction(
       return await prisma.message.create({
         data: {
           projectId: event.data.projectId,
-          content: result.state.data.summary,
+          content: parseAgentOutput(responseOutput),
           role: "ASSISTANT",
           type: "RESULT",
           fragment: {
             create: {
               sandboxUrl: sandboxUrl,
-              title: "Fragment",
+              title: parseAgentOutput(fragmentTitleOutput),
               files: result.state.data.files,
             },
           },
