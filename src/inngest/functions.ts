@@ -3,7 +3,9 @@ import {
   createNetwork,
   createTool,
   openai,
-  Tool,
+  type Tool,
+  type Message,
+  createState,
 } from "@inngest/agent-kit";
 import { inngest } from "./client";
 import { Sandbox } from "@e2b/code-interpreter";
@@ -24,6 +26,40 @@ export const codeAgentFunction = inngest.createFunction(
       const sandbox = await Sandbox.create("vibe-nextjs-first-test-02");
       return sandbox.sandboxId;
     });
+
+    const previousMessages = await step.run(
+      "get-previous-messages",
+      async () => {
+        const formattedMessages: Message[] = [];
+        const messages = await prisma.message.findMany({
+          where: {
+            projectId: event.data.projectId,
+          },
+          orderBy: {
+            createdAt: "desc", // TODO: change to "ASC" if the AI does not understand what the lastest command is
+          },
+        });
+
+        for (const message of messages) {
+          formattedMessages.push({
+            type: "text",
+            role: message.role === "ASSISTANT" ? "assistant" : "user",
+            content: message.content,
+          });
+        }
+        return formattedMessages;
+      }
+    );
+
+    const state = createState<AgentState>(
+      {
+        summary: "",
+        files: {},
+      },
+      {
+        messages: previousMessages,
+      }
+    );
 
     const codeAgent = createAgent<AgentState>({
       name: "code Agent",
@@ -137,6 +173,7 @@ export const codeAgentFunction = inngest.createFunction(
       name: "coding-agent-network",
       agents: [codeAgent],
       maxIter: 15,
+      defaultState: state,
       router: async ({ network }) => {
         const summary = network.state.data.summary;
         if (summary) return;
@@ -144,7 +181,7 @@ export const codeAgentFunction = inngest.createFunction(
       },
     });
 
-    const result = await network.run(event.data.value);
+    const result = await network.run(event.data.value, { state });
 
     const isError =
       !result.state.data.summary ||
