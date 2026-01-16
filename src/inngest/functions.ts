@@ -44,6 +44,7 @@ export const codeAgentFunction = inngest.createFunction(
           orderBy: {
             createAt: "desc", // TODO: change to "ASC" if the AI does not understand what the lastest command is
           },
+          take: 5,
         });
 
         for (const message of messages) {
@@ -53,7 +54,7 @@ export const codeAgentFunction = inngest.createFunction(
             content: message.content,
           });
         }
-        return formattedMessages;
+        return formattedMessages.reverse();
       }
     );
 
