@@ -16,6 +16,7 @@ import {
 } from "./utils";
 import { z } from "zod";
 import { PROMPT, RESPONSE_PROMPT, FRAGMENT_TITLE_PROMPT } from "../prompt";
+import { SANDBOX_TIMEOUT } from "./types";
 
 interface AgentState {
   summary: string;
@@ -28,6 +29,7 @@ export const codeAgentFunction = inngest.createFunction(
   async ({ event, step }) => {
     const sandboxId = await step.run("get-sandbox-id", async () => {
       const sandbox = await Sandbox.create("vibe-nextjs-first-test-02");
+      await sandbox.setTimeout(SANDBOX_TIMEOUT); // 30 minutes
       return sandbox.sandboxId;
     });
 
@@ -40,8 +42,9 @@ export const codeAgentFunction = inngest.createFunction(
             projectId: event.data.projectId,
           },
           orderBy: {
-            createdAt: "desc", // TODO: change to "ASC" if the AI does not understand what the lastest command is
+            createAt: "desc", // TODO: change to "ASC" if the AI does not understand what the lastest command is
           },
+          take: 5,
         });
 
         for (const message of messages) {
@@ -51,7 +54,7 @@ export const codeAgentFunction = inngest.createFunction(
             content: message.content,
           });
         }
-        return formattedMessages;
+        return formattedMessages.reverse();
       }
     );
 
