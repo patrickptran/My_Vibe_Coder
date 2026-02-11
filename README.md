@@ -157,17 +157,3 @@ This project targets modern Node hosting and can be deployed to Vercel, Render, 
 
 - Open issues and PRs.
 - Follow the existing code style and run `npm run lint` before submitting.
-
-## License
-
-This repo does not include a license file by default — add a `LICENSE` if you intend to publish under a specific license.
-
----
-
-If you want, I can:
-
-- Tailor the README with project-specific descriptions and example screenshots.
-- Add step-by-step environment variable examples and `.env.example`.
-- Add deployment instructions for Vercel or another provider.
-
-Tell me which additions you'd like and I'll update the file.
