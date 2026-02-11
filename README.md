@@ -2,7 +2,7 @@
 
 A Next.js (App Router) starter app with Prisma, Inngest, tRPC, Clerk auth, and a curated component/ui library — built as the codebase for the "Loveable clone / assistant-vibe-coder" project.
 
-[Watch Demo 🚀] (https://my-vibe-coder.vercel.app/)
+[Watch Demo 🚀](https://my-vibe-coder.vercel.app/)
 
 ## Key Features
 
@@ -72,6 +72,7 @@ Design a detailed product page for a sneaker store. Left side should have an ima
 | API Layer | tRPC | End-to-end typesafe API without code generation |
 | Background Jobs | Inngest | Reliable serverless job processing and workflows |
 | Code Execution | E2B | Sandboxed environment for secure code execution and previews |
+| Infrastructure | Vercel | Free cloud hosting and storage services |
 | Containerization | Docker | Application packaging and deployment consistency |
 | AI Model | GPT-4o-mini | Advanced language model for code generation |
 
