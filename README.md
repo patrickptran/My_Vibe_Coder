@@ -2,7 +2,7 @@
 
 A Next.js (App Router) starter app with Prisma, Inngest, tRPC, Clerk auth, and a curated component/ui library — built as the codebase for the "Loveable clone / assistant-vibe-coder" project.
 
-[Watch Demo 🚀](my-vibe-coder.vercel.app)
+[Watch Demo 🚀] (https://my-vibe-coder.vercel.app/)
 
 ## Key Features
 
